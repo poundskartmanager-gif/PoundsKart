@@ -21,6 +21,20 @@ body{font-family:'Jost',sans-serif;background:#f0f2f5;min-height:100vh;color:#2d
 .nav-tab:hover{color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.05)}
 .nav-tab.active{color:#e8c96a;border-bottom-color:#e8c96a;background:rgba(232,201,106,0.07)}
 .nav-icon{font-size:16px}
+/* SETTINGS TAB */
+.settings-outer{max-width:700px;margin:0 auto;padding:28px 20px}
+.settings-section{background:white;border-radius:12px;border:1px solid #e0e8f0;padding:22px;margin-bottom:20px}
+.settings-section-title{font-size:11px;font-weight:700;color:#1a2a4a;text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #e8f0fe;display:flex;align-items:center;gap:8px}
+.settings-add-row{display:flex;gap:8px;margin-bottom:14px}
+.settings-add-input{flex:1;padding:10px 12px;border:2px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:'Jost',sans-serif;outline:none;transition:border-color .2s}
+.settings-add-input:focus{border-color:#1a2a4a}
+.settings-add-btn{padding:10px 18px;background:#1a2a4a;color:#e8c96a;border:none;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;font-family:'Jost',sans-serif;white-space:nowrap}
+.settings-add-btn:hover{opacity:0.85}
+.settings-list{display:flex;flex-wrap:wrap;gap:8px}
+.settings-tag{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:#f0f4ff;border:1px solid #c7d7fd;border-radius:20px;font-size:12px;font-weight:600;color:#1a2a4a}
+.settings-tag-x{cursor:pointer;color:#94a3b8;font-size:14px;line-height:1}
+.settings-tag-x:hover{color:#e63946}
+.settings-empty{font-size:12px;color:#94a3b8;font-style:italic}
 .app-panel{display:none}
 .app-panel.active{display:block}
 .panel-banner{position:relative;overflow:hidden;padding:28px 36px 22px;background:linear-gradient(120deg,#1a2a4a 0%,#24407a 60%,#1a2a4a 100%);border-bottom:3px solid rgba(232,201,106,0.25)}
@@ -253,6 +267,7 @@ body{font-family:'Jost',sans-serif;background:#f0f2f5;min-height:100vh;color:#2d
 <nav class="app-nav">
   <button class="nav-tab active" onclick="switchTab('desc',this)"><span class="nav-icon">✦</span> Description Generator</button>
   <button class="nav-tab" onclick="switchTab('calc',this)"><span class="nav-icon">🧮</span> Cost Calculator</button>
+  <button class="nav-tab" onclick="switchTab('settings',this)"><span class="nav-icon">⚙️</span> Settings</button>
 </nav>
 
 <!-- PANEL 1: DESCRIPTION GENERATOR -->
@@ -391,6 +406,28 @@ body{font-family:'Jost',sans-serif;background:#f0f2f5;min-height:100vh;color:#2d
       <div class="field-group"><label>Standard Delivery Time</label><input id="f-del1" value="7–14 Business Days" oninput="autoGen()"></div>
       <div class="field-group"><label>Return Policy</label><input id="f-ret" value="14-day returns on unworn items" oninput="autoGen()"></div>
 
+      <!-- COLLECTION & VENDOR -->
+      <div class="row2" style="margin-bottom:10px;">
+        <div class="field-group" style="margin-bottom:0">
+          <label>Collection</label>
+          <select id="f-collection" style="width:100%;font-size:13px;font-family:'Jost',sans-serif;padding:9px 11px;background:#faf8f4;border:1px solid #ddd6cc;border-radius:6px;color:#2d2d2d;outline:none;">
+            <option value="">— Select Collection —</option>
+          </select>
+        </div>
+        <div class="field-group" style="margin-bottom:0">
+          <label>Vendor</label>
+          <select id="f-vendor" style="width:100%;font-size:13px;font-family:'Jost',sans-serif;padding:9px 11px;background:#faf8f4;border:1px solid #ddd6cc;border-radius:6px;color:#2d2d2d;outline:none;">
+            <option value="">— Select Vendor —</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-group" style="margin-bottom:13px;">
+        <label>Tags</label>
+        <select id="f-tags" multiple style="width:100%;font-size:13px;font-family:'Jost',sans-serif;padding:9px 11px;background:#faf8f4;border:1px solid #ddd6cc;border-radius:6px;color:#2d2d2d;outline:none;height:80px;">
+        </select>
+        <div style="font-size:10px;color:#9a9080;margin-top:4px;">Hold Ctrl (or Cmd on Mac) to select multiple tags</div>
+      </div>
+
       <button class="copy-btn" id="copybtn" onclick="copyHTML()">⬇ Copy HTML — Paste into Shopify</button>
       <button class="csv-btn" id="csvbtn" onclick="downloadCSV()">⬇ Download Shopify CSV</button>
       <button id="publish-btn" onclick="publishToShopify()" style="width:100%;padding:13px;background:linear-gradient(135deg,#e63946,#c1121f);color:#fff;border:none;border-radius:8px;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;font-family:'Jost',sans-serif;cursor:pointer;margin-top:8px;font-weight:700;transition:opacity .2s;">🚀 Publish to Shopify</button>
@@ -405,6 +442,55 @@ body{font-family:'Jost',sans-serif;background:#f0f2f5;min-height:100vh;color:#2d
       <div class="preview-wrap" id="preview">
         <div class="preview-empty"><span>✦</span>Fill in the fields on the left and your luxury product description will appear here instantly.</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL 3: SETTINGS -->
+<div class="app-panel" id="panel-settings">
+  <div class="panel-banner">
+    <div class="pb-eyebrow">⚙️ PoundsKart Tools</div>
+    <div class="pb-title">Store <em>Settings</em></div>
+    <div class="pb-desc">Add your collections and vendors once — select them instantly when publishing products</div>
+  </div>
+  <div class="settings-outer">
+
+    <div class="settings-section">
+      <div class="settings-section-title">🗂️ My Collections</div>
+      <div class="settings-add-row">
+        <input class="settings-add-input" id="coll-input" type="text" placeholder="e.g. Cotton Nighties, Sarees, Suits...">
+        <button class="settings-add-btn" onclick="addCollection()">+ Add</button>
+      </div>
+      <div class="settings-list" id="coll-list">
+        <span class="settings-empty">No collections added yet</span>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">🏷️ My Vendors</div>
+      <div class="settings-add-row">
+        <input class="settings-add-input" id="vend-input" type="text" placeholder="e.g. PoundsKart, BaapStore, Chennai Silk...">
+        <button class="settings-add-btn" onclick="addVendor()">+ Add</button>
+      </div>
+      <div class="settings-list" id="vend-list">
+        <span class="settings-empty">No vendors added yet</span>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">🔖 My Tags</div>
+      <div class="settings-add-row">
+        <input class="settings-add-input" id="tag-input" type="text" placeholder="e.g. Sale, New Arrival, Festival, Bridal...">
+        <button class="settings-add-btn" onclick="addTag()">+ Add</button>
+      </div>
+      <div class="settings-list" id="tag-list">
+        <span class="settings-empty">No tags added yet</span>
+      </div>
+    </div>
+
+    <div style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border-left:4px solid #e8c96a;border-radius:8px;padding:14px 16px;font-size:12px;color:#92400e;line-height:1.8;">
+      <strong style="display:block;margin-bottom:4px;color:#b8952a;">How it works</strong>
+      Add your collections and vendors here once. They will appear as dropdowns in the Description Generator tab. When you tap 🚀 Publish, the product is automatically assigned to the selected collection and vendor in Shopify.
     </div>
   </div>
 </div>
@@ -624,6 +710,9 @@ function downloadCSV(){
   var comparePrice=v('f-compare')||'';
   var occ=v('c-occ')||v('j-occ')||v('s-occ')||v('co-occ')||'';
   var tags=colourTags.concat(occ?occ.split(',').map(function(s){return s.trim();}):[]).filter(Boolean);
+  // Add selected tags from dropdown
+  var tagSel=document.getElementById('f-tags');
+  if(tagSel){Array.prototype.slice.call(tagSel.selectedOptions).forEach(function(o){if(o.value&&tags.indexOf(o.value)===-1)tags.push(o.value);});}
   tags.push('PoundsKart');
   var tagsStr=tags.join(', ');
   var type='';
@@ -756,7 +845,129 @@ async function runAI(){
 }
 function setVal(id,val){var el=document.getElementById(id);if(el)el.value=val;}
 
-/* ===================== COST CALCULATOR ===================== */
+/* ===================== SETTINGS — CLOUD STORAGE ===================== */
+var myCollections=[], myVendors=['PoundsKart'], myTags=[];
+var SETTINGS_URL='https://thunderous-tulumba-6647ef.netlify.app/.netlify/functions/shopify';
+
+async function loadSettings(){
+  try{
+    var resp=await fetch(SETTINGS_URL,{method:'GET'});
+    var data=await resp.json();
+    myCollections=data.collections||[];
+    myVendors=data.vendors||['PoundsKart'];
+    myTags=data.tags||[];
+  }catch(e){
+    myCollections=JSON.parse(localStorage.getItem('pk_collections')||'[]');
+    myVendors=JSON.parse(localStorage.getItem('pk_vendors')||'["PoundsKart"]');
+    myTags=JSON.parse(localStorage.getItem('pk_tags')||'[]');
+  }
+  renderCollList();renderVendList();renderTagList();renderDropdowns();
+}
+async function saveSettings(){
+  renderDropdowns();
+  try{
+    await fetch(SETTINGS_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'save-settings',collections:myCollections,vendors:myVendors,tags:myTags})
+    });
+  }catch(e){
+    localStorage.setItem('pk_collections',JSON.stringify(myCollections));
+    localStorage.setItem('pk_vendors',JSON.stringify(myVendors));
+    localStorage.setItem('pk_tags',JSON.stringify(myTags));
+  }
+}
+function addCollection(){
+  var inp=document.getElementById('coll-input');
+  var val=inp.value.trim();if(!val)return;
+  val.split(',').forEach(function(c){c=c.trim();if(c&&myCollections.indexOf(c)===-1)myCollections.push(c);});
+  inp.value='';saveSettings();renderCollList();
+}
+function removeCollection(i){myCollections.splice(i,1);saveSettings();renderCollList();}
+function addVendor(){
+  var inp=document.getElementById('vend-input');
+  var val=inp.value.trim();if(!val)return;
+  val.split(',').forEach(function(v){v=v.trim();if(v&&myVendors.indexOf(v)===-1)myVendors.push(v);});
+  inp.value='';saveSettings();renderVendList();
+}
+function removeVendor(i){myVendors.splice(i,1);saveSettings();renderVendList();}
+function addTag(){
+  var inp=document.getElementById('tag-input');
+  var val=inp.value.trim();if(!val)return;
+  val.split(',').forEach(function(t){t=t.trim();if(t&&myTags.indexOf(t)===-1)myTags.push(t);});
+  inp.value='';saveSettings();renderTagList();
+}
+function removeTag(i){myTags.splice(i,1);saveSettings();renderTagList();}
+function renderCollList(){
+  var el=document.getElementById('coll-list');if(!el)return;
+  if(!myCollections.length){el.innerHTML='<span class="settings-empty">No collections added yet</span>';return;}
+  el.innerHTML=myCollections.map(function(c,i){return '<span class="settings-tag">'+c+'<span class="settings-tag-x" onclick="removeCollection('+i+')">×</span></span>';}).join('');
+}
+function renderVendList(){
+  var el=document.getElementById('vend-list');if(!el)return;
+  if(!myVendors.length){el.innerHTML='<span class="settings-empty">No vendors added yet</span>';return;}
+  el.innerHTML=myVendors.map(function(v,i){return '<span class="settings-tag">'+v+'<span class="settings-tag-x" onclick="removeVendor('+i+')">×</span></span>';}).join('');
+}
+function renderTagList(){
+  var el=document.getElementById('tag-list');if(!el)return;
+  if(!myTags.length){el.innerHTML='<span class="settings-empty">No tags added yet</span>';return;}
+  el.innerHTML=myTags.map(function(t,i){return '<span class="settings-tag">'+t+'<span class="settings-tag-x" onclick="removeTag('+i+')">×</span></span>';}).join('');
+}
+function renderDropdowns(){
+  var cs=document.getElementById('f-collection');
+  var vs=document.getElementById('f-vendor');
+  var ts=document.getElementById('f-tags');
+  if(cs){var cv=cs.value;cs.innerHTML='<option value="">— Select Collection —</option>'+myCollections.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');cs.value=cv;}
+  if(vs){var vv=vs.value;vs.innerHTML='<option value="">— Select Vendor —</option>'+myVendors.map(function(v){return '<option value="'+v+'">'+v+'</option>';}).join('');vs.value=vv;}
+  if(ts){ts.innerHTML=myTags.map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('');}
+}
+window.addEventListener('load',loadSettings);
+
+/* ===================== PUBLISH TO SHOPIFY ===================== */
+async function publishToShopify(){
+  var name=v('f-name');
+  if(!name){alert('Please fill in the Product Name first.');return;}
+  var btn=document.getElementById('publish-btn');
+  var status=document.getElementById('publish-status');
+  btn.disabled=true;btn.textContent='⏳ Publishing...';
+  status.style.color='#e8c96a';status.textContent='Sending to Shopify...';
+  var handle=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  var type='';
+  if(currentType==='clothing')type=v('c-style')||'Clothing';
+  else if(currentType==='jewellery')type='Jewellery';
+  else if(currentType==='spiritual')type=v('s-type')||'Spiritual';
+  else type='Combo Set';
+  var occ=v('c-occ')||v('j-occ')||v('s-occ')||v('co-occ')||'';
+  var tags=colourTags.concat(occ?occ.split(',').map(function(s){return s.trim();}):[]).filter(Boolean);
+  tags.push('PoundsKart');
+  var payload={
+    title:name,body_html:window._shopifyHTML||'',
+    product_type:type,tags:tags.join(', '),handle:handle,
+    price:v('f-price')||'0.00',compare_price:v('f-compare')||null,
+    colours:colourTags.length?colourTags:['Default'],
+    weight:document.getElementById('weight')?document.getElementById('weight').value||'0':'0',
+    collection:document.getElementById('f-collection')?document.getElementById('f-collection').value:'',
+    vendor:document.getElementById('f-vendor')?document.getElementById('f-vendor').value:'PoundsKart'
+  };
+  try{
+    var resp=await fetch('https://thunderous-tulumba-6647ef.netlify.app/.netlify/functions/shopify',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+    });
+    var result=await resp.json();
+    if(result.success){
+      status.style.color='#10b981';status.textContent='✅ Published to Shopify as Draft!';
+      btn.textContent='✅ Published!';
+      setTimeout(function(){
+        if(result.admin_url)window.open(result.admin_url,'_blank');
+        btn.textContent='🚀 Publish to Shopify';btn.disabled=false;status.textContent='';
+      },2500);
+    } else{throw new Error(result.error||'Unknown error');}
+  }catch(err){
+    status.style.color='#f87171';status.textContent='❌ '+(err.message||'Failed');
+    btn.textContent='🚀 Publish to Shopify';btn.disabled=false;
+  }
+}
+
 var RATE=115,currentProfit=null;
 function toGBP(inr){return inr/RATE;}
 function calcSupplier(g){if(g<=0)return 0;return Math.ceil(g/1000)*125;}
@@ -784,48 +995,7 @@ function applyProfit(pct){
   set('pr-pct',pct+'%');set('pr-profit','£'+profitGBP.toFixed(2));set('pr-sell','£'+sellGBP.toFixed(2));
   set('sc-profit',profitGBP.toFixed(2));set('sc-sell',sellGBP.toFixed(2));set('sc-pct',pct+'%');
 }
-async function publishToShopify(){
-  var name=v('f-name');
-  if(!name){alert('Please fill in the Product Name first.');return;}
-  var btn=document.getElementById('publish-btn');
-  var status=document.getElementById('publish-status');
-  btn.disabled=true;btn.textContent='⏳ Publishing...';
-  status.style.color='#e8c96a';status.textContent='Sending to Shopify...';
-  var handle=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-  var type='';
-  if(currentType==='clothing')type=v('c-style')||'Clothing';
-  else if(currentType==='jewellery')type='Jewellery';
-  else if(currentType==='spiritual')type=v('s-type')||'Spiritual';
-  else type='Combo Set';
-  var occ=v('c-occ')||v('j-occ')||v('s-occ')||v('co-occ')||'';
-  var tags=colourTags.concat(occ?occ.split(',').map(function(s){return s.trim();}):[]).filter(Boolean);
-  tags.push('PoundsKart');
-  var payload={
-    title:name,body_html:window._shopifyHTML||'',
-    product_type:type,tags:tags.join(', '),handle:handle,
-    price:v('f-price')||'0.00',compare_price:v('f-compare')||null,
-    colours:colourTags.length?colourTags:['Default'],
-    weight:document.getElementById('weight')?document.getElementById('weight').value||'0':'0'
-  };
-  try{
-    var resp=await fetch('https://thunderous-tulumba-6647ef.netlify.app/.netlify/functions/shopify',{
-      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
-    });
-    var result=await resp.json();
-    if(result.success){
-      status.style.color='#10b981';status.textContent='✅ Published to Shopify as Draft!';
-      btn.textContent='✅ Published!';
-      setTimeout(function(){
-        if(result.admin_url)window.open(result.admin_url,'_blank');
-        btn.textContent='🚀 Publish to Shopify';btn.disabled=false;status.textContent='';
-      },2500);
-    } else{throw new Error(result.error||'Unknown error');}
-  }catch(err){
-    status.style.color='#f87171';status.textContent='❌ '+(err.message||'Failed');
-    btn.textContent='🚀 Publish to Shopify';btn.disabled=false;
-  }
-}
-  function resetCalc(){
+function resetCalc(){
   ['itemNumber','itemCost','weight'].forEach(function(id){document.getElementById(id).value='';});
   ['finalItemCost','finalSupplier','finalShipping','gbp-item','gbp-supplier','gbp-shipping'].forEach(function(id){set(id,'0.00');});
   set('finalPackaging','90.00');set('gbp-pkg','0.78');set('finalTotal','90');set('finalTotalGBP','0.78');set('gbpBig','0.78');set('inrRef','90');set('breakdownText','—');
