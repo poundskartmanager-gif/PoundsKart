@@ -422,10 +422,10 @@ body{font-family:'Jost',sans-serif;background:#f0f2f5;min-height:100vh;color:#2d
         </div>
       </div>
       <div class="field-group" style="margin-bottom:13px;">
-        <label>Tags</label>
-        <select id="f-tags" multiple style="width:100%;font-size:13px;font-family:'Jost',sans-serif;padding:9px 11px;background:#faf8f4;border:1px solid #ddd6cc;border-radius:6px;color:#2d2d2d;outline:none;height:80px;">
-        </select>
-        <div style="font-size:10px;color:#9a9080;margin-top:4px;">Hold Ctrl (or Cmd on Mac) to select multiple tags</div>
+        <label>Tags <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b0a898;">(tap to select/deselect)</span></label>
+        <div id="f-tags-wrap" style="display:flex;flex-wrap:wrap;gap:6px;min-height:36px;padding:8px;background:#faf8f4;border:1px solid #ddd6cc;border-radius:6px;">
+          <span style="font-size:11px;color:#b0a898;font-style:italic;" id="f-tags-empty">No tags yet — add in ⚙️ Settings</span>
+        </div>
       </div>
 
       <button class="copy-btn" id="copybtn" onclick="copyHTML()">⬇ Copy HTML — Paste into Shopify</button>
@@ -710,9 +710,7 @@ function downloadCSV(){
   var comparePrice=v('f-compare')||'';
   var occ=v('c-occ')||v('j-occ')||v('s-occ')||v('co-occ')||'';
   var tags=colourTags.concat(occ?occ.split(',').map(function(s){return s.trim();}):[]).filter(Boolean);
-  // Add selected tags from dropdown
-  var tagSel=document.getElementById('f-tags');
-  if(tagSel){Array.prototype.slice.call(tagSel.selectedOptions).forEach(function(o){if(o.value&&tags.indexOf(o.value)===-1)tags.push(o.value);});}
+  selectedTags.forEach(function(t){if(tags.indexOf(t)===-1)tags.push(t);});
   tags.push('PoundsKart');
   var tagsStr=tags.join(', ');
   var type='';
@@ -913,13 +911,32 @@ function renderTagList(){
   if(!myTags.length){el.innerHTML='<span class="settings-empty">No tags added yet</span>';return;}
   el.innerHTML=myTags.map(function(t,i){return '<span class="settings-tag">'+t+'<span class="settings-tag-x" onclick="removeTag('+i+')">×</span></span>';}).join('');
 }
+var selectedTags=[];
 function renderDropdowns(){
   var cs=document.getElementById('f-collection');
   var vs=document.getElementById('f-vendor');
-  var ts=document.getElementById('f-tags');
+  var tw=document.getElementById('f-tags-wrap');
+  var te=document.getElementById('f-tags-empty');
   if(cs){var cv=cs.value;cs.innerHTML='<option value="">— Select Collection —</option>'+myCollections.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');cs.value=cv;}
   if(vs){var vv=vs.value;vs.innerHTML='<option value="">— Select Vendor —</option>'+myVendors.map(function(v){return '<option value="'+v+'">'+v+'</option>';}).join('');vs.value=vv;}
-  if(ts){ts.innerHTML=myTags.map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('');}
+  if(tw){
+    if(!myTags.length){if(te)te.style.display='inline';return;}
+    if(te)te.style.display='none';
+    tw.querySelectorAll('.tag-pill').forEach(function(p){p.remove();});
+    myTags.forEach(function(t){
+      var pill=document.createElement('span');
+      pill.className='tag-pill';
+      var sel=selectedTags.indexOf(t)>-1;
+      pill.style.cssText='display:inline-flex;align-items:center;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;font-family:Jost,sans-serif;cursor:pointer;border:1.5px solid '+(sel?'#1a2a4a':'#ddd6cc')+';background:'+(sel?'#1a2a4a':'white')+';color:'+(sel?'#e8c96a':'#7a7065')+';transition:all .15s;';
+      pill.textContent=t;
+      pill.onclick=function(){
+        var idx=selectedTags.indexOf(t);
+        if(idx>-1)selectedTags.splice(idx,1);else selectedTags.push(t);
+        renderDropdowns();
+      };
+      tw.appendChild(pill);
+    });
+  }
 }
 window.addEventListener('load',loadSettings);
 
