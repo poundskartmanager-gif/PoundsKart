@@ -978,9 +978,10 @@ async function publishToShopify(){
         if(result.admin_url)window.open(result.admin_url,'_blank');
         btn.textContent='🚀 Publish to Shopify';btn.disabled=false;status.textContent='';
       },2500);
-    } else{throw new Error(result.error||'Unknown error');}
+    } else{throw new Error(result.error||JSON.stringify(result));}
   }catch(err){
-    status.style.color='#f87171';status.textContent='❌ '+(err.message||'Failed');
+    status.style.color='#f87171';status.textContent='❌ '+((err&&err.message)?err.message:'Check console for details');
+    console.error('Publish error:',err);
     btn.textContent='🚀 Publish to Shopify';btn.disabled=false;
   }
 }
