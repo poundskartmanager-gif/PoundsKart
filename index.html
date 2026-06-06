@@ -848,32 +848,16 @@ var myCollections=[], myVendors=['PoundsKart'], myTags=[];
 var SETTINGS_URL='https://thunderous-tulumba-6647ef.netlify.app/.netlify/functions/shopify';
 
 async function loadSettings(){
-  try{
-    var resp=await fetch(SETTINGS_URL,{method:'GET'});
-    var data=await resp.json();
-    myCollections=data.collections||[];
-    myVendors=data.vendors||['PoundsKart'];
-    myTags=data.tags||[];
-  }catch(e){
-    myCollections=JSON.parse(localStorage.getItem('pk_collections')||'[]');
-    myVendors=JSON.parse(localStorage.getItem('pk_vendors')||'["PoundsKart"]');
-    myTags=JSON.parse(localStorage.getItem('pk_tags')||'[]');
-  }
+  myCollections=JSON.parse(localStorage.getItem('pk_collections')||'[]');
+  myVendors=JSON.parse(localStorage.getItem('pk_vendors')||'["PoundsKart"]');
+  myTags=JSON.parse(localStorage.getItem('pk_tags')||'[]');
   renderCollList();renderVendList();renderTagList();renderDropdowns();
 }
 async function saveSettings(){
+  localStorage.setItem('pk_collections',JSON.stringify(myCollections));
+  localStorage.setItem('pk_vendors',JSON.stringify(myVendors));
+  localStorage.setItem('pk_tags',JSON.stringify(myTags));
   renderDropdowns();
-  try{
-    await fetch(SETTINGS_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'save-settings',collections:myCollections,vendors:myVendors,tags:myTags})
-    });
-  }catch(e){
-    localStorage.setItem('pk_collections',JSON.stringify(myCollections));
-    localStorage.setItem('pk_vendors',JSON.stringify(myVendors));
-    localStorage.setItem('pk_tags',JSON.stringify(myTags));
-  }
 }
 function addCollection(){
   var inp=document.getElementById('coll-input');
