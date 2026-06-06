@@ -784,7 +784,48 @@ function applyProfit(pct){
   set('pr-pct',pct+'%');set('pr-profit','£'+profitGBP.toFixed(2));set('pr-sell','£'+sellGBP.toFixed(2));
   set('sc-profit',profitGBP.toFixed(2));set('sc-sell',sellGBP.toFixed(2));set('sc-pct',pct+'%');
 }
-function resetCalc(){
+async function publishToShopify(){
+  var name=v('f-name');
+  if(!name){alert('Please fill in the Product Name first.');return;}
+  var btn=document.getElementById('publish-btn');
+  var status=document.getElementById('publish-status');
+  btn.disabled=true;btn.textContent='⏳ Publishing...';
+  status.style.color='#e8c96a';status.textContent='Sending to Shopify...';
+  var handle=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  var type='';
+  if(currentType==='clothing')type=v('c-style')||'Clothing';
+  else if(currentType==='jewellery')type='Jewellery';
+  else if(currentType==='spiritual')type=v('s-type')||'Spiritual';
+  else type='Combo Set';
+  var occ=v('c-occ')||v('j-occ')||v('s-occ')||v('co-occ')||'';
+  var tags=colourTags.concat(occ?occ.split(',').map(function(s){return s.trim();}):[]).filter(Boolean);
+  tags.push('PoundsKart');
+  var payload={
+    title:name,body_html:window._shopifyHTML||'',
+    product_type:type,tags:tags.join(', '),handle:handle,
+    price:v('f-price')||'0.00',compare_price:v('f-compare')||null,
+    colours:colourTags.length?colourTags:['Default'],
+    weight:document.getElementById('weight')?document.getElementById('weight').value||'0':'0'
+  };
+  try{
+    var resp=await fetch('https://thunderous-tulumba-6647ef.netlify.app/.netlify/functions/shopify',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+    });
+    var result=await resp.json();
+    if(result.success){
+      status.style.color='#10b981';status.textContent='✅ Published to Shopify as Draft!';
+      btn.textContent='✅ Published!';
+      setTimeout(function(){
+        if(result.admin_url)window.open(result.admin_url,'_blank');
+        btn.textContent='🚀 Publish to Shopify';btn.disabled=false;status.textContent='';
+      },2500);
+    } else{throw new Error(result.error||'Unknown error');}
+  }catch(err){
+    status.style.color='#f87171';status.textContent='❌ '+(err.message||'Failed');
+    btn.textContent='🚀 Publish to Shopify';btn.disabled=false;
+  }
+}
+  function resetCalc(){
   ['itemNumber','itemCost','weight'].forEach(function(id){document.getElementById(id).value='';});
   ['finalItemCost','finalSupplier','finalShipping','gbp-item','gbp-supplier','gbp-shipping'].forEach(function(id){set(id,'0.00');});
   set('finalPackaging','90.00');set('gbp-pkg','0.78');set('finalTotal','90');set('finalTotalGBP','0.78');set('gbpBig','0.78');set('inrRef','90');set('breakdownText','—');
