@@ -951,7 +951,7 @@ async function publishToShopify(){
     vendor:document.getElementById('f-vendor')?document.getElementById('f-vendor').value:'PoundsKart'
   };
   try{
-    var resp=await fetch('https://thunderous-tulumba-6647ef.netlify.app/.netlify/functions/shopify',{
+    var resp=await fetch('https://poundkart.netlify.app/.netlify/functions/shopify',{
       method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
     });
     var result=await resp.json();
