@@ -447,9 +447,23 @@ body{font-family:'Jost',sans-serif;background:#f0f2f5;min-height:100vh;color:#2d
   </div>
   <div class="settings-outer">
 
+    <!-- ADMIN LOCK -->
+    <div class="settings-section" id="admin-lock-box" style="background:linear-gradient(135deg,#1a2a4a,#2d4a7a);border:1px solid rgba(232,201,106,0.3);">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div id="lock-state" style="font-size:13px;font-weight:700;color:#e8c96a;">🔒 Locked — view only</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:3px;">Collections, vendors &amp; tags can only be changed by the admin. Everyone else just selects them.</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="settings-add-btn" id="unlock-btn" onclick="adminUnlock()" style="background:#e8c96a;color:#1a2a4a;">🔑 Admin Unlock</button>
+          <button class="settings-add-btn" id="relock-btn" onclick="adminLock()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;">🔒 Lock Again</button>
+        </div>
+      </div>
+    </div>
+
     <div class="settings-section">
       <div class="settings-section-title">🗂️ My Collections</div>
-      <div class="settings-add-row">
+      <div class="settings-add-row admin-only" style="display:none;">
         <input class="settings-add-input" id="coll-input" type="text" placeholder="e.g. Cotton Nighties, Sarees, Suits...">
         <button class="settings-add-btn" onclick="addCollection()">+ Add</button>
       </div>
@@ -460,7 +474,7 @@ body{font-family:'Jost',sans-serif;background:#f0f2f5;min-height:100vh;color:#2d
 
     <div class="settings-section">
       <div class="settings-section-title">🏷️ My Vendors</div>
-      <div class="settings-add-row">
+      <div class="settings-add-row admin-only" style="display:none;">
         <input class="settings-add-input" id="vend-input" type="text" placeholder="e.g. PoundsKart, BaapStore, Chennai Silk...">
         <button class="settings-add-btn" onclick="addVendor()">+ Add</button>
       </div>
@@ -471,7 +485,7 @@ body{font-family:'Jost',sans-serif;background:#f0f2f5;min-height:100vh;color:#2d
 
     <div class="settings-section">
       <div class="settings-section-title">🔖 My Tags</div>
-      <div class="settings-add-row">
+      <div class="settings-add-row admin-only" style="display:none;">
         <input class="settings-add-input" id="tag-input" type="text" placeholder="e.g. Sale, New Arrival, Festival, Bridal...">
         <button class="settings-add-btn" onclick="addTag()">+ Add</button>
       </div>
@@ -482,7 +496,7 @@ body{font-family:'Jost',sans-serif;background:#f0f2f5;min-height:100vh;color:#2d
 
     <div style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border-left:4px solid #e8c96a;border-radius:8px;padding:14px 16px;font-size:12px;color:#92400e;line-height:1.8;">
       <strong style="display:block;margin-bottom:4px;color:#b8952a;">How it works</strong>
-      Add your collections and vendors here once. They will appear as dropdowns in the Description Generator tab. When you tap 🚀 Publish, the product is automatically assigned to the selected collection and vendor in Shopify.
+      The admin adds collections, vendors and tags here once (🔑 Admin Unlock with PIN). Everyone else can only <em>select</em> them from dropdowns and tap-tags in the Description Generator and CSV Converter — no typing, no spelling mistakes, so automated collections always match. All exports (including per-fabric downloads) carry the selected collection, vendor, tags and Draft/Active status.
     </div>
   </div>
 </div>
@@ -629,6 +643,12 @@ function switchTab(tab,btn){
   document.querySelectorAll('.nav-tab').forEach(function(b){b.classList.remove('active');});
   document.getElementById('panel-'+tab).classList.add('active');
   btn.classList.add('active');
+  if(tab==='converter'){
+    var f=document.getElementById('cv-frame');
+    if(f&&f.contentWindow){
+      try{f.contentWindow.postMessage({type:'pk-settings',collections:myCollections,vendors:myVendors,tags:myTags},'*');}catch(e){}
+    }
+  }
 }
 
 /* ===================== DESCRIPTION GENERATOR ===================== */
@@ -848,57 +868,142 @@ async function runAI(){
 }
 function setVal(id,val){var el=document.getElementById(id);if(el)el.value=val;}
 
-/* ===================== SETTINGS — CLOUD STORAGE ===================== */
+/* ===================== SETTINGS — CLOUD STORAGE (npoint.io) ===================== */
 var myCollections=[], myVendors=['PoundsKart'], myTags=[];
-var SETTINGS_URL='https://poun.netlify.app/.netlify/functions/shopify';
+/* ▼▼ ADMIN PIN — change this to your own secret code ▼▼ */
+var PK_ADMIN_PIN='2580';
+var _adminUnlocked=false;
+function isAdmin(){return _adminUnlocked;}
+function adminUnlock(){
+  var pin=prompt('Enter admin PIN to edit collections, vendors & tags:');
+  if(pin===null)return;
+  if(pin===PK_ADMIN_PIN){
+    _adminUnlocked=true;
+    try{sessionStorage.setItem('pk_admin','1');}catch(e){}
+    applyAdminUI();
+  }else{
+    alert('❌ Wrong PIN. Settings stay locked.');
+  }
+}
+function adminLock(){
+  _adminUnlocked=false;
+  try{sessionStorage.removeItem('pk_admin');}catch(e){}
+  applyAdminUI();
+}
+function applyAdminUI(){
+  var on=isAdmin();
+  document.querySelectorAll('.admin-only').forEach(function(el){el.style.display=on?'flex':'none';});
+  var ls=document.getElementById('lock-state');
+  if(ls)ls.innerHTML=on?'🔓 Unlocked — admin editing enabled':'🔒 Locked — view only';
+  var ub=document.getElementById('unlock-btn'),rb=document.getElementById('relock-btn');
+  if(ub)ub.style.display=on?'none':'inline-block';
+  if(rb)rb.style.display=on?'inline-block':'none';
+  renderCollList();renderVendList();renderTagList();
+}
+window.addEventListener('load',function(){
+  try{_adminUnlocked=sessionStorage.getItem('pk_admin')==='1';}catch(e){}
+  applyAdminUI();
+});
+/* ▼▼ PASTE YOUR NPOINT BIN ID BELOW (from npoint.io — see setup steps) ▼▼ */
+var NPOINT_BIN_ID='7b1e28e61e7198224f09';
+var NPOINT_URL='https://api.npoint.io/'+NPOINT_BIN_ID;
 
 async function loadSettings(){
+  /* 1) Show cached copy instantly */
   myCollections=JSON.parse(localStorage.getItem('pk_collections')||'[]');
   myVendors=JSON.parse(localStorage.getItem('pk_vendors')||'["PoundsKart"]');
   myTags=JSON.parse(localStorage.getItem('pk_tags')||'[]');
   renderCollList();renderVendList();renderTagList();renderDropdowns();
+  /* 2) Then fetch the shared settings from the cloud */
+  if(NPOINT_BIN_ID==='PASTE_YOUR_BIN_ID_HERE')return;
+  try{
+    var r=await fetch(NPOINT_URL);
+    if(!r.ok)throw new Error('npoint '+r.status);
+    var d=await r.json();
+    if(Array.isArray(d.collections))myCollections=d.collections;
+    if(Array.isArray(d.vendors)&&d.vendors.length)myVendors=d.vendors;
+    if(Array.isArray(d.tags))myTags=d.tags;
+    localStorage.setItem('pk_collections',JSON.stringify(myCollections));
+    localStorage.setItem('pk_vendors',JSON.stringify(myVendors));
+    localStorage.setItem('pk_tags',JSON.stringify(myTags));
+    renderCollList();renderVendList();renderTagList();renderDropdowns();
+  }catch(e){console.warn('Cloud settings load failed, using local copy:',e);}
 }
 async function saveSettings(){
+  if(!isAdmin()){alert('🔒 Settings are locked. Only the admin can change collections, vendors or tags.');return;}
+  /* Save locally first (instant), then sync to cloud */
   localStorage.setItem('pk_collections',JSON.stringify(myCollections));
   localStorage.setItem('pk_vendors',JSON.stringify(myVendors));
   localStorage.setItem('pk_tags',JSON.stringify(myTags));
   renderDropdowns();
+  var cvf=document.getElementById('cv-frame');
+  if(cvf&&cvf.contentWindow){try{cvf.contentWindow.postMessage({type:'pk-settings',collections:myCollections,vendors:myVendors,tags:myTags},'*');}catch(e){}}
+  if(NPOINT_BIN_ID==='PASTE_YOUR_BIN_ID_HERE')return;
+  try{
+    var r=await fetch(NPOINT_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({collections:myCollections,vendors:myVendors,tags:myTags})
+    });
+    if(!r.ok)throw new Error('npoint save '+r.status);
+  }catch(e){
+    console.warn('Cloud settings save failed (kept locally):',e);
+    alert('⚠ Saved on this device only — cloud sync failed. Check internet and try again.');
+  }
 }
 function addCollection(){
+  if(!isAdmin()){adminUnlock();if(!isAdmin())return;}
   var inp=document.getElementById('coll-input');
   var val=inp.value.trim();if(!val)return;
   val.split(',').forEach(function(c){c=c.trim();if(c&&myCollections.indexOf(c)===-1)myCollections.push(c);});
   inp.value='';saveSettings();renderCollList();
 }
-function removeCollection(i){myCollections.splice(i,1);saveSettings();renderCollList();}
+function removeCollection(i){
+  if(!isAdmin())return;
+  if(!confirm('Delete collection "'+myCollections[i]+'"? Products tagged with it will stop matching.'))return;
+  myCollections.splice(i,1);saveSettings();renderCollList();
+}
 function addVendor(){
+  if(!isAdmin()){adminUnlock();if(!isAdmin())return;}
   var inp=document.getElementById('vend-input');
   var val=inp.value.trim();if(!val)return;
   val.split(',').forEach(function(v){v=v.trim();if(v&&myVendors.indexOf(v)===-1)myVendors.push(v);});
   inp.value='';saveSettings();renderVendList();
 }
-function removeVendor(i){myVendors.splice(i,1);saveSettings();renderVendList();}
+function removeVendor(i){
+  if(!isAdmin())return;
+  if(!confirm('Delete vendor "'+myVendors[i]+'"?'))return;
+  myVendors.splice(i,1);saveSettings();renderVendList();
+}
 function addTag(){
+  if(!isAdmin()){adminUnlock();if(!isAdmin())return;}
   var inp=document.getElementById('tag-input');
   var val=inp.value.trim();if(!val)return;
   val.split(',').forEach(function(t){t=t.trim();if(t&&myTags.indexOf(t)===-1)myTags.push(t);});
   inp.value='';saveSettings();renderTagList();
 }
-function removeTag(i){myTags.splice(i,1);saveSettings();renderTagList();}
+function removeTag(i){
+  if(!isAdmin())return;
+  if(!confirm('Delete tag "'+myTags[i]+'"?'))return;
+  myTags.splice(i,1);saveSettings();renderTagList();
+}
 function renderCollList(){
   var el=document.getElementById('coll-list');if(!el)return;
   if(!myCollections.length){el.innerHTML='<span class="settings-empty">No collections added yet</span>';return;}
-  el.innerHTML=myCollections.map(function(c,i){return '<span class="settings-tag">'+c+'<span class="settings-tag-x" onclick="removeCollection('+i+')">×</span></span>';}).join('');
+  var adm=isAdmin();
+  el.innerHTML=myCollections.map(function(c,i){return '<span class="settings-tag">'+c+(adm?'<span class="settings-tag-x" onclick="removeCollection('+i+')">×</span>':'')+'</span>';}).join('');
 }
 function renderVendList(){
   var el=document.getElementById('vend-list');if(!el)return;
   if(!myVendors.length){el.innerHTML='<span class="settings-empty">No vendors added yet</span>';return;}
-  el.innerHTML=myVendors.map(function(v,i){return '<span class="settings-tag">'+v+'<span class="settings-tag-x" onclick="removeVendor('+i+')">×</span></span>';}).join('');
+  var adm=isAdmin();
+  el.innerHTML=myVendors.map(function(v,i){return '<span class="settings-tag">'+v+(adm?'<span class="settings-tag-x" onclick="removeVendor('+i+')">×</span>':'')+'</span>';}).join('');
 }
 function renderTagList(){
   var el=document.getElementById('tag-list');if(!el)return;
   if(!myTags.length){el.innerHTML='<span class="settings-empty">No tags added yet</span>';return;}
-  el.innerHTML=myTags.map(function(t,i){return '<span class="settings-tag">'+t+'<span class="settings-tag-x" onclick="removeTag('+i+')">×</span></span>';}).join('');
+  var adm=isAdmin();
+  el.innerHTML=myTags.map(function(t,i){return '<span class="settings-tag">'+t+(adm?'<span class="settings-tag-x" onclick="removeTag('+i+')">×</span>':'')+'</span>';}).join('');
 }
 var selectedTags=[];
 function renderDropdowns(){
@@ -928,6 +1033,9 @@ function renderDropdowns(){
   }
 }
 window.addEventListener('load',loadSettings);
+/* Re-fetch latest cloud settings whenever the user comes back to this tab,
+   so staff always see the admin's newest collections/vendors/tags without re-opening the link */
+window.addEventListener('focus',function(){loadSettings();});
 
 /* ===================== PUBLISH TO SHOPIFY ===================== */
 async function publishToShopify(){
@@ -956,7 +1064,7 @@ async function publishToShopify(){
     vendor:document.getElementById('f-vendor')?document.getElementById('f-vendor').value:'PoundsKart'
   };
   try{
-    var resp=await fetch('https://poun.netlify.app/.netlify/functions/shopify',{
+    var resp=await fetch('/shopify',{
       method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
     });
     var result=await resp.json();
@@ -1057,6 +1165,7 @@ function resetCalc(){
   calculateCosts();
 }
 </script>
+
 
 
 
@@ -1235,19 +1344,42 @@ tr.flagged td{background:#fffbeb}
     </div>
 
     <div class="two" style="margin-top:14px;">
-      <div class="field" style="margin-top:0;"><label>Vendor name</label><input id="vendor" value="PoundsKart"></div>
-      <div class="field" style="margin-top:0;"><label>Add to collection (as tag)</label><input id="collection" placeholder="e.g. Gowns"></div>
+      <div class="field" style="margin-top:0;"><label>Vendor (from ⚙️ Settings)</label>
+        <select id="vendor"><option value="PoundsKart">PoundsKart</option></select>
+      </div>
+      <div class="field" style="margin-top:0;"><label>Collection (from ⚙️ Settings)</label>
+        <select id="collection"><option value="">— No collection —</option></select>
+      </div>
+    </div>
+    <div class="field"><label>Tags from ⚙️ Settings (tap to select / deselect)</label>
+      <div id="settings-tags-wrap" style="display:flex;flex-wrap:wrap;gap:6px;min-height:38px;padding:8px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:7px;align-items:center;">
+        <span id="settings-tags-empty" style="font-size:11px;color:#94a3b8;font-style:italic;">No tags yet — add them in the ⚙️ Settings tab</span>
+      </div>
     </div>
     <div class="field"><label>Extra tags (comma separated)</label><input id="tags" placeholder="Plus Size, New Arrival"></div>
+    <div class="field"><label>Product status in Shopify</label>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="m-btn active" id="st-draft" onclick="setStatusMode('draft')" style="flex:1;">📝 Draft</button>
+        <button type="button" class="m-btn" id="st-active" onclick="setStatusMode('active')" style="flex:1;">✅ Active</button>
+      </div>
+      <div id="status-hint" style="font-size:11px;color:#94a3b8;margin-top:6px;">Products import as hidden drafts — publish them in Shopify when ready.</div>
+    </div>
     <div class="field"><label>Occasion text (in every description)</label><input id="occasion" value="Festive · Party · Everyday"></div>
     <div class="field"><label>SEO keyword (added to Google title)</label><input id="seo-kw" value="Plus Size"></div>
 
     <button class="apply-btn" onclick="applyMargin()">↻ Recalculate all prices below</button>
   </div>
 
-  <!-- STEP 3 -->
+  <!-- STEP 3: CLASSIFY BY MATERIAL -->
+  <div class="card" id="classify-card" style="display:none;">
+    <div class="card-title"><span class="step-n">3</span> Classify by Material — One CSV per Collection</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:14px;line-height:1.6;">The tool sorted your products by fabric/material. Tap a material to download just those as their own CSV — each is tagged with that material name so it lands in the matching collection on your site.</div>
+    <div id="material-groups" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
+  </div>
+
+  <!-- STEP 4 -->
   <div class="card" id="table-card" style="display:none;">
-    <div class="card-title"><span class="step-n">3</span> Review, Edit &amp; Bulk-Adjust</div>
+    <div class="card-title"><span class="step-n">4</span> Review, Edit &amp; Bulk-Adjust</div>
 
     <div class="warn-bar" id="warn-bar"></div>
 
@@ -1279,6 +1411,68 @@ tr.flagged td{background:#fffbeb}
 
 <script>
 var RATE=115, margin=40, products=[], rawHeaders=[], sortKey='', sortDir=1;
+
+/* ---- Settings from PoundsKart Manager (⚙️ Settings tab) ---- */
+var statusMode='draft', selectedSettingsTags=[], pkColl=[], pkVend=['PoundsKart'], pkTags=[];
+function setStatusMode(m){
+  statusMode=m;
+  var d=document.getElementById('st-draft'),a=document.getElementById('st-active'),h=document.getElementById('status-hint');
+  if(d)d.classList.toggle('active',m==='draft');
+  if(a)a.classList.toggle('active',m==='active');
+  if(h)h.textContent=m==='draft'?'Products import as hidden drafts — publish them in Shopify when ready.':'⚠ Products import as ACTIVE and go live on your store immediately.';
+}
+function loadPkSettings(){
+  try{
+    pkColl=JSON.parse(localStorage.getItem('pk_collections')||'[]');
+    pkVend=JSON.parse(localStorage.getItem('pk_vendors')||'["PoundsKart"]');
+    pkTags=JSON.parse(localStorage.getItem('pk_tags')||'[]');
+  }catch(e){}
+  renderPkSettings();
+}
+function renderPkSettings(){
+  var vs=document.getElementById('vendor');
+  if(vs){
+    var vv=vs.value,vlist=(pkVend&&pkVend.length)?pkVend:['PoundsKart'];
+    vs.innerHTML=vlist.map(function(v){return '<option value="'+v+'">'+v+'</option>';}).join('');
+    if(vlist.indexOf(vv)>-1)vs.value=vv;
+  }
+  var cs=document.getElementById('collection');
+  if(cs){
+    var cv=cs.value;
+    cs.innerHTML='<option value="">— No collection —</option>'+pkColl.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
+    cs.value=cv;
+  }
+  var tw=document.getElementById('settings-tags-wrap'),te=document.getElementById('settings-tags-empty');
+  if(tw){
+    tw.querySelectorAll('.tag-pill').forEach(function(p){p.remove();});
+    selectedSettingsTags=selectedSettingsTags.filter(function(t){return pkTags.indexOf(t)>-1;});
+    if(!pkTags.length){if(te)te.style.display='inline';return;}
+    if(te)te.style.display='none';
+    pkTags.forEach(function(t){
+      var pill=document.createElement('span');
+      pill.className='tag-pill';
+      var sel=selectedSettingsTags.indexOf(t)>-1;
+      pill.style.cssText='display:inline-flex;align-items:center;padding:5px 13px;border-radius:20px;font-size:11px;font-weight:600;font-family:Jost,sans-serif;cursor:pointer;border:1.5px solid '+(sel?'#1a2a4a':'#e2e8f0')+';background:'+(sel?'#1a2a4a':'white')+';color:'+(sel?'#e8c96a':'#64748b')+';transition:all .15s;user-select:none;';
+      pill.textContent=t;
+      pill.onclick=function(){
+        var i=selectedSettingsTags.indexOf(t);
+        if(i>-1)selectedSettingsTags.splice(i,1);else selectedSettingsTags.push(t);
+        renderPkSettings();
+      };
+      tw.appendChild(pill);
+    });
+  }
+}
+window.addEventListener('load',loadPkSettings);
+window.addEventListener('message',function(e){
+  var d=e.data;
+  if(d&&d.type==='pk-settings'){
+    if(Array.isArray(d.collections))pkColl=d.collections;
+    if(Array.isArray(d.vendors)&&d.vendors.length)pkVend=d.vendors;
+    if(Array.isArray(d.tags))pkTags=d.tags;
+    renderPkSettings();
+  }
+});
 
 /* ---- GST rules (India 2026 — item-level, same as Manager) ---- */
 var GST_LOOKUP={"Saree":{m:"f",r:5},"Kurti":{m:"t",lo:5,hi:18},"Salwar Suit":{m:"t",lo:5,hi:18},"Churidar Set":{m:"t",lo:5,hi:18},"Gown":{m:"t",lo:5,hi:18},"Lehenga":{m:"t",lo:5,hi:18},"Blouse":{m:"t",lo:5,hi:18},"Skirt":{m:"t",lo:5,hi:18},"Palazzo":{m:"t",lo:5,hi:18},"Leggings":{m:"t",lo:5,hi:18},"Dupatta":{m:"f",r:5},"Shawl":{m:"f",r:5},"Nighty":{m:"t",lo:5,hi:18},"Shirt":{m:"t",lo:5,hi:18},"T-Shirt":{m:"t",lo:5,hi:18},"Jeans":{m:"t",lo:5,hi:18},"Trousers":{m:"t",lo:5,hi:18},"Kurta":{m:"t",lo:5,hi:18},"Sherwani":{m:"t",lo:5,hi:18},"Blazer":{m:"t",lo:5,hi:18},"Jacket":{m:"t",lo:5,hi:18},"Baby Dress":{m:"t",lo:5,hi:18},"Kids Frock":{m:"t",lo:5,hi:18},"Kids Shirt":{m:"t",lo:5,hi:18},"Kids Pants":{m:"t",lo:5,hi:18},"Imitation Jewellery":{m:"f",r:3},"Covering Jewellery":{m:"f",r:3},"German Silver Jewellery":{m:"f",r:3},"Artificial Bangles":{m:"f",r:3},"Earrings":{m:"f",r:3},"Chains":{m:"f",r:3},"Neck Sets":{m:"f",r:3},"Anklets":{m:"f",r:3},"Handbag":{m:"f",r:18},"Wallet":{m:"f",r:18},"Clutch":{m:"f",r:18},"Watch":{m:"f",r:18},"Sunglasses":{m:"f",r:18},"Belt":{m:"f",r:18},"Mobile Cover":{m:"f",r:18},"Charger":{m:"f",r:18},"USB Cable":{m:"f",r:18},"Earphones":{m:"f",r:18},"Bluetooth Speaker":{m:"f",r:18},"Power Bank":{m:"f",r:18}};
@@ -1377,10 +1571,12 @@ document.getElementById('file').addEventListener('change',function(e){
   Papa.parse(f,{header:true,skipEmptyLines:true,complete:function(res){
     rawHeaders=res.meta.fields;buildProducts(res.data);
     document.getElementById('margin-card').style.display='block';
+    document.getElementById('classify-card').style.display='block';
     document.getElementById('table-card').style.display='block';
     var detected=autoDetectItem(res.data);
     if(detected)selectDetectedItem(detected);
     applyMargin();
+    renderMaterialGroups();
   }});
 });
 
@@ -1574,7 +1770,7 @@ function buildSeoDesc(p){
 }
 
 /* ---- shared row builder for one product (single + bulk) ---- */
-function buildRowsFor(p,s,vendor,extraTags){
+function buildRowsFor(p,s,vendor,extraTags,collection){
   var body=buildDescription(p),out=[];
   p.rows.forEach(function(r,i){
     var nr=Object.assign({},r);
@@ -1584,6 +1780,7 @@ function buildRowsFor(p,s,vendor,extraTags){
       nr['Body (HTML)']=body;
       nr['SEO Title']=buildSeoTitle(p);
       nr['SEO Description']=buildSeoDesc(p);
+      if(collection)nr['Collection']=collection;
     }
     if(parseFloat(r['Variant Price'])>0){
       nr['Variant Price']=p.now||r['Variant Price'];
@@ -1595,21 +1792,28 @@ function buildRowsFor(p,s,vendor,extraTags){
       var all=ex.concat(extraTags);all.push('PoundsKart');
       var seen={},merged=[];all.forEach(function(t){var k=t.toLowerCase();if(t&&!seen[k]){seen[k]=1;merged.push(t);}});
       nr['Tags']=merged.join(', ');
-      nr['Status']='draft';nr['Published']='FALSE';
+      nr['Status']=statusMode;nr['Published']=statusMode==='active'?'TRUE':'FALSE';
     }
     out.push(nr);
   });
   return out;
 }
 function settingsForExport(){
-  var vendor=document.getElementById('vendor').value.trim()||'PoundsKart';
-  var coll=document.getElementById('collection').value.trim();
+  var vEl=document.getElementById('vendor');
+  var vendor=(vEl&&vEl.value?vEl.value:'').trim()||'PoundsKart';
+  var cEl=document.getElementById('collection');
+  var coll=(cEl&&cEl.value?cEl.value:'').trim();
   var extraTags=document.getElementById('tags').value.split(',').map(function(x){return x.trim();}).filter(Boolean);
-  if(coll)extraTags.push(coll);
-  return {vendor:vendor,extraTags:extraTags};
+  selectedSettingsTags.forEach(function(t){if(extraTags.indexOf(t)===-1)extraTags.push(t);});
+  if(coll&&extraTags.indexOf(coll)===-1)extraTags.push(coll);
+  return {vendor:vendor,extraTags:extraTags,collection:coll};
 }
 function saveCSV(rows,filename){
-  var csv=Papa.unparse({fields:rawHeaders,data:rows},{quotes:true});
+  var fields=rawHeaders.slice();
+  ['Collection'].forEach(function(c){
+    if(fields.indexOf(c)===-1 && rows.some(function(r){return r[c]!==undefined&&r[c]!=='';}))fields.push(c);
+  });
+  var csv=Papa.unparse({fields:fields,data:rows},{quotes:true});
   // When embedded inside PoundsKart Manager, ask the top app to download
   // (browsers block downloads triggered from inside an iframe).
   if(window.parent && window.parent!==window){
@@ -1625,10 +1829,51 @@ function saveCSV(rows,filename){
 /* ---- download ONE product ---- */
 function downloadOne(idx){
   var p=products[idx],s=S(),ex=settingsForExport();
-  var rows=buildRowsFor(p,s,ex.vendor,ex.extraTags);
+  var rows=buildRowsFor(p,s,ex.vendor,ex.extraTags,ex.collection);
   var safe=(p.handle||p.title||'product').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40);
   saveCSV(rows,'pk-'+safe+'.csv');
-  document.getElementById('status').textContent='✅ Downloaded 1 product ('+rows.length+' rows): '+p.title;
+  document.getElementById('status').textContent='✅ Downloaded 1 product ('+rows.length+' rows · '+statusMode+(ex.collection?' · '+ex.collection:'')+'): '+p.title;
+}
+
+/* ---- MATERIAL CLASSIFICATION ---- */
+var FABRICS=["Kanjeevaram","Kanchipuram","Banarasi","Paithani","Patola","Chanderi","Tussar","Bandhani","Kalamkari","Organza","Georgette","Chiffon","Satin","Linen","Cotton","Velvet","Jacquard","Crepe","Net","Brasso","Chinon","Rayon","Modal","Dola Silk","Art Silk","Raw Silk","Silk"];
+function classifyMaterial(p){
+  // 1) use explicit material if present, mapped to a known fabric if possible
+  if(p.material){
+    for(var i=0;i<FABRICS.length;i++){if(p.material.toLowerCase().indexOf(FABRICS[i].toLowerCase())>-1)return FABRICS[i];}
+    return p.material;
+  }
+  // 2) scan title/type for a fabric keyword
+  var hay=(p.title+' '+p.type).toLowerCase();
+  for(var j=0;j<FABRICS.length;j++){if(hay.indexOf(FABRICS[j].toLowerCase())>-1)return FABRICS[j];}
+  return 'Other';
+}
+function materialGroups(){
+  var g={};
+  products.forEach(function(p){var k=classifyMaterial(p);(g[k]=g[k]||[]).push(p);});
+  return g;
+}
+function renderMaterialGroups(){
+  var el=document.getElementById('material-groups');if(!el)return;
+  var g=materialGroups();
+  var keys=Object.keys(g).sort(function(a,b){return g[b].length-g[a].length;});
+  el.innerHTML=keys.map(function(k){
+    var safe=k.replace(/'/g,"\\\\'");
+    return '<button class="tool-btn" style="padding:11px 16px;font-size:13px;" onclick="downloadMaterialGroup(\\''+safe+'\\')">⬇ '+k+' <span style="color:#94a3b8;">('+g[k].length+')</span></button>';
+  }).join('')||'<span style="font-size:12px;color:#94a3b8;">No products loaded</span>';
+}
+function downloadMaterialGroup(mat){
+  var g=materialGroups(),list=g[mat]||[];
+  if(!list.length){alert('No products for '+mat);return;}
+  var s=S(),ex=settingsForExport();
+  var tags=ex.extraTags.slice();
+  if(mat!=='Other' && tags.indexOf(mat)===-1)tags.push(mat); // material becomes the collection tag
+  var collForGroup=ex.collection||(mat!=='Other'?mat:'');     // chosen collection wins, else the material itself
+  var out=[];
+  list.forEach(function(p){out=out.concat(buildRowsFor(p,s,ex.vendor,tags,collForGroup));});
+  var fn=mat.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'material';
+  saveCSV(out,'pk-'+fn+'.csv');
+  document.getElementById('status').textContent='✅ Downloaded '+list.length+' '+mat+' product(s) · '+out.length+' rows · '+statusMode+' · collection: '+(collForGroup||'none');
 }
 
 /* ---- download only the filtered/searched products ---- */
@@ -1636,42 +1881,28 @@ function downloadFiltered(){
   var list=filteredProducts();
   if(!list.length){alert('No products match the current search.');return;}
   var s=S(),ex=settingsForExport(),out=[];
-  list.forEach(function(p){out=out.concat(buildRowsFor(p,s,ex.vendor,ex.extraTags));});
+  list.forEach(function(p){out=out.concat(buildRowsFor(p,s,ex.vendor,ex.extraTags,ex.collection));});
   var q=(document.getElementById('search').value||'group').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'group';
   saveCSV(out,'pk-'+q+'.csv');
-  document.getElementById('status').textContent='✅ Downloaded '+list.length+' filtered product(s) · '+out.length+' rows ('+q+')';
+  document.getElementById('status').textContent='✅ Downloaded '+list.length+' filtered product(s) · '+out.length+' rows · '+statusMode+(ex.collection?' · '+ex.collection:'');
 }
 
 /* ---- generate final CSV (all) ---- */
 function generateAndDownload(){
   if(!products.length){alert('Upload a CSV first.');return;}
   var s=S(),ex=settingsForExport(),out=[];
-  products.forEach(function(p){out=out.concat(buildRowsFor(p,s,ex.vendor,ex.extraTags));});
+  products.forEach(function(p){out=out.concat(buildRowsFor(p,s,ex.vendor,ex.extraTags,ex.collection));});
   saveCSV(out,'poundskart-shopify-ready.csv');
-  document.getElementById('status').textContent='✅ Done! '+products.length+' products · '+out.length+' rows downloaded.';
+  document.getElementById('status').textContent='✅ Done! '+products.length+' products · '+out.length+' rows · '+statusMode+(ex.collection?' · collection: '+ex.collection:'')+' downloaded.';
 }
 <\/script>
 </body>
 </html>
 `;
 (function(){
-  function loadConverter(){
-    var f=document.getElementById("cv-frame");
-    if(f && !f.getAttribute("data-loaded")){ f.srcdoc=PK_CONVERTER_HTML; f.setAttribute("data-loaded","1"); }
-  }
-  if(document.readyState!=="loading") loadConverter();
-  else document.addEventListener("DOMContentLoaded",loadConverter);
-  // Handle download requests from the embedded converter (top-window download)
-  window.addEventListener("message",function(e){
-    var d=e.data;
-    if(d && d.type==="pk-download" && typeof d.csv==="string"){
-      var blob=new Blob(["\ufeff"+d.csv],{type:"text/csv;charset=utf-8;"});
-      var url=URL.createObjectURL(blob);
-      var a=document.createElement("a");a.href=url;a.download=d.filename||"poundskart.csv";
-      document.body.appendChild(a);a.click();document.body.removeChild(a);
-      setTimeout(function(){URL.revokeObjectURL(url);},1500);
-    }
-  });
+  function loadConverter(){var f=document.getElementById("cv-frame");if(f && !f.getAttribute("data-loaded")){f.srcdoc=PK_CONVERTER_HTML;f.setAttribute("data-loaded","1");}}
+  if(document.readyState!=="loading") loadConverter(); else document.addEventListener("DOMContentLoaded",loadConverter);
+  window.addEventListener("message",function(e){var d=e.data;if(d && d.type==="pk-download" && typeof d.csv==="string"){var blob=new Blob(["\ufeff"+d.csv],{type:"text/csv;charset=utf-8;"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download=d.filename||"poundskart.csv";document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1500);}});
 })();
 </script>
 </body>
